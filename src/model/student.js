@@ -4,7 +4,7 @@ const accountModel = require('./account');
 
 const studentModel = sequelize.define('studentModel', {
   id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     primaryKey: true,
     references: { model: accountModel, key: 'id' }
   }

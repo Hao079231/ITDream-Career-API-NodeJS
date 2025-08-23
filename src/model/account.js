@@ -1,12 +1,13 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/dbConfig');
 const ACCOUNT_STATUS = require('../constants/constant');
+const generateId = require('../service/idGenerator');
 
 const accountModel = sequelize.define('accountModel', {
   id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     primaryKey: true,
-    autoIncrement: true
+    defaultValue: generateId.generateId()
   },
 
   email: {
@@ -34,6 +35,10 @@ const accountModel = sequelize.define('accountModel', {
   birthday: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  kind: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   },
   otp: {
     type: DataTypes.STRING,

@@ -4,4 +4,13 @@ const ACCOUNT_STATUS = {
   LOCKED: -1
 };
 
-module.exports = ACCOUNT_STATUS;
+const ACCOUNT_KINDS = {
+  ADMIN: 1,
+  STUDENT: 2,
+  EDUCATOR: 3
+}
+
+module.exports = {
+  ACCOUNT_STATUS,
+  ACCOUNT_KINDS
+};

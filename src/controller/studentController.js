@@ -2,7 +2,7 @@ const account = require('../model/account');
 const student = require('../model/student');
 const bcrypt = require('bcrypt');
 const { sendOtpEmail } = require('../service/emailService');
-const ACCOUNT_STATUS = require('../constants/constant');
+const { ACCOUNT_STATUS, ACCOUNT_KINDS } = require('../constants/constant');
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -42,6 +42,7 @@ exports.registerStudent = async (req, res) => {
       password: hashedPassword,
       phone,
       birthday,
+      kind: ACCOUNT_KINDS.STUDENT,  // lưu kind từ constant
       status: ACCOUNT_STATUS.PENDING,  // lưu status từ constant
       otp,                             // lưu otp vào DB
       otpAttempts: 0
