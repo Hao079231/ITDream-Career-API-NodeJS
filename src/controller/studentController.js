@@ -1,5 +1,6 @@
 const account = require('../model/account');
 const student = require('../model/student');
+const group = require('../model/group');
 const bcrypt = require('bcrypt');
 const { sendOtpEmail } = require('../service/emailService');
 const { ACCOUNT_STATUS, ACCOUNT_KINDS } = require('../constants/constant');
@@ -28,6 +29,12 @@ exports.registerStudent = async (req, res) => {
       return res.status(400).json({ message: 'Phone number already exists' });
     }
 
+    // Kiểm tra có tồn tại group STUDENT không
+    const studentGroup = await group.findOne({ where: { kind: ACCOUNT_KINDS.STUDENT } });
+    if (!studentGroup) {
+      return res.status(400).json({ message: 'Student group does not exist' });
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -43,6 +50,7 @@ exports.registerStudent = async (req, res) => {
       phone,
       birthday,
       kind: ACCOUNT_KINDS.STUDENT,  // lưu kind từ constant
+      groupId: studentGroup.id,      // lưu groupId vào DB
       status: ACCOUNT_STATUS.PENDING,  // lưu status từ constant
       otp,                             // lưu otp vào DB
       otpAttempts: 0
@@ -91,6 +99,62 @@ exports.verifyOtp = async (req, res) => {
     return res.status(200).json({ message: 'OTP verified. Account activated.' });
   } catch (error) {
     console.error('Error verifying OTP:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await account.findOne({ where: { email } });
+    if (!user) return res.status(404).json({ message: 'Account not found' });
+
+    if (user.status === -1) return res.status(403).json({ message: 'Account is locked' });
+
+    // Tạo OTP mới
+    const otp = generateOtp();
+    user.otp = otp;
+    user.otpAttempts = 0;
+    await user.save();
+
+    // Gửi email OTP
+    await sendOtpEmail(email, otp);
+
+    return res.status(200).json({ message: 'OTP resent. Please check your email.' });
+  } catch (error) {
+    console.error('Error resending OTP:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.getProfileStudent = async (req, res) => {
+  try {
+    const decode = req.user; // payload đã decode từ token { id, username, kind, pCodes }
+    const requestUser = await account.findByPk(decode.id);
+
+    if (!requestUser) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    if (!decode.pCodes.includes('ST_P')) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const studentData = requestUser.toJSON();
+    delete studentData.id;
+    delete studentData.password;
+    delete studentData.kind;
+    delete studentData.status;
+    delete studentData.otp;
+    delete studentData.otpAttempt;
+    delete studentData.isAdmin;
+    delete studentData.createdAt;
+    delete studentData.updatedAt;
+    delete studentData.groupId;
+
+    return res.status(200).json({ message: 'Get student profile successfully', profile: studentData });
+  } catch (error) {
+    console.error('Error getting student profile:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
