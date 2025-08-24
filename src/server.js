@@ -2,7 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const app = express();
-const apiRouter = require('./route/api');
+const studentRouter = require('./route/studentRouter');
+const accountRouter = require('./route/accountRouter');
+const permissionRouter = require('./route/permissionRouter');
+const groupRouter = require('./route/groupRouter');
 const sequelize = require('./config/dbConfig');
 
 //Config use port and hostname from .env
@@ -13,7 +16,10 @@ const HOST_NAME = process.env.HOST_NAME || 'localhost';
 app.use(express.json());
 
 // Use file api
-app.use('/v1', apiRouter);
+app.use('/v1', studentRouter);
+app.use(accountRouter);
+app.use('/v1', permissionRouter);
+app.use('/v1', groupRouter);
 
 // Tự động tạo bảng khi khởi động server
 sequelize.sync({ alter: true })

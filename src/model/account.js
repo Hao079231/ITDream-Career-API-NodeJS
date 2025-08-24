@@ -1,24 +1,22 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/dbConfig');
-const ACCOUNT_STATUS = require('../constants/constant');
+const { ACCOUNT_STATUS } = require('../constants/constant');
 const generateId = require('../service/idGenerator');
+const groupModel = require('./group');
 
 const accountModel = sequelize.define('accountModel', {
   id: {
     type: DataTypes.BIGINT,
     primaryKey: true,
-    defaultValue: generateId.generateId()
+    defaultValue: () => generateId.generateId()
   },
-
   email: {
     type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   username: {
     type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   fullName: {
     type: DataTypes.STRING,
@@ -48,6 +46,10 @@ const accountModel = sequelize.define('accountModel', {
     type: DataTypes.INTEGER,
     defaultValue: 0
   },
+  isAdmin: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
   status: {
     type: DataTypes.INTEGER,
     defaultValue: ACCOUNT_STATUS.ACTIVE
@@ -62,6 +64,12 @@ const accountModel = sequelize.define('accountModel', {
   }
 }, {
   tableName: 'db_account',
+});
+
+// Thiết lập mối quan hệ nhiều-một với Group
+accountModel.belongsTo(groupModel, {
+  foreignKey: 'groupId',
+  allowNull: false
 });
 
 module.exports = accountModel;
