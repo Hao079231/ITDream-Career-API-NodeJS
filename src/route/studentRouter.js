@@ -11,4 +11,8 @@ router.post('/student/verify-otp', studentController.verifyOtp);
 
 router.get('/student/profile', authenticate, studentController.getProfileStudent);
 
+router.post('/student/forgot-password', studentController.forgotPasswordStudent);
+
+router.post('/student/reset-password', studentController.resetPasswordStudent);
+
 module.exports = router;

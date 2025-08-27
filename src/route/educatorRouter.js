@@ -13,4 +13,9 @@ router.post('/educator/resend-otp', educatorController.resendOtp);
 
 router.get('/educator/profile', authenticate, educatorController.getProfileEducator);
 
+router.post('/educator/forgot-password', educatorController.forgotPasswordEducator);
+
+router.post('/educator/reset-password', educatorController.resetPasswordEducator);
+
+
 module.exports = router;
