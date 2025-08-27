@@ -8,6 +8,8 @@ const permissionRouter = require('./route/permissionRouter');
 const groupRouter = require('./route/groupRouter');
 const sequelize = require('./config/dbConfig');
 const cors = require('cors');
+const educatorRouter = require('./route/educatorRouter');
+
 
 //Config use port and hostname from .env
 const PORT = process.env.PORT || 8181;
@@ -49,6 +51,7 @@ app.use('/v1', studentRouter);
 app.use(accountRouter);
 app.use('/v1', permissionRouter);
 app.use('/v1', groupRouter);
+app.use('/v1', educatorRouter);
 
 // Tự động tạo bảng khi khởi động server
 sequelize.sync({ alter: true })
