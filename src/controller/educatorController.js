@@ -136,7 +136,7 @@ exports.getProfileEducator = async (req, res) => {
       return res.status(404).json({ message: 'Educator not found' });
     }
 
-    if (!decode.pCodes.includes('ST_P')) {
+    if (!decode.pCodes.includes('ED_P')) {
       return res.status(403).json({ message: 'Forbidden' });
     }
 

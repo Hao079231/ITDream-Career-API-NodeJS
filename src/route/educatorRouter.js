@@ -9,6 +9,8 @@ router.post('/educator/register', educatorController.registerEducator);
 // Xác thực OTP
 router.post('/educator/verify-otp', educatorController.verifyOtp);
 
-// router.get('/educator/profile', authenticate, educatorController.getProfileEducator);
+router.post('/educator/resend-otp', educatorController.resendOtp);
+
+router.get('/educator/profile', authenticate, educatorController.getProfileEducator);
 
 module.exports = router;
