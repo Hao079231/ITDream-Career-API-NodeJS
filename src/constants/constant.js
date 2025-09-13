@@ -1,6 +1,7 @@
 const ACCOUNT_STATUS = {
   PENDING: 0,
   ACTIVE: 1,
+  WAITING_APPROVE: 2,
   LOCKED: -1
 };
 

@@ -24,7 +24,9 @@
     "mysql2": "3.14.3",
     "nodemailer": "7.0.5",
     "sequelize": "6.37.7",
-    "snowflake-id": "1.1.0"
+    "snowflake-id": "1.1.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "nodemon": "3.1.10"

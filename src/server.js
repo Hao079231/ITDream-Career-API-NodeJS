@@ -9,6 +9,8 @@ const groupRouter = require('./route/groupRouter');
 const sequelize = require('./config/dbConfig');
 const cors = require('cors');
 const educatorRouter = require('./route/educatorRouter');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./config/swaggerConfig');
 
 
 //Config use port and hostname from .env
@@ -17,6 +19,9 @@ const HOST_NAME = process.env.HOST_NAME || 'localhost';
 
 //Config app use json
 app.use(express.json());
+
+// Swagger setup
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // middleware for CORS
 const allowedOrigins = ['http://localhost:3000', 'http://localhost:4000']; // cho PROD

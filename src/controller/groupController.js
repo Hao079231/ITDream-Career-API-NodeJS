@@ -44,11 +44,7 @@ exports.createGroup = async (req, res) => {
     const newGroup = await group.create({ name, description, kind });
     await newGroup.setPermissions(permissions);
 
-    res.status(200).json({
-      message: 'Group created successfully',
-      group: newGroup,
-      permissions
-    });
+    res.status(200).json({ message: 'Group created successfully' });
 
   } catch (error) {
     console.error(error);
@@ -108,11 +104,7 @@ exports.updateGroup = async (req, res) => {
       await existingGroup.setPermissions(permissions);
     }
 
-    res.status(200).json({
-      message: 'Group updated successfully',
-      group: existingGroup,
-      permissions
-    });
+    res.status(200).json({ message: 'Group updated successfully' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Update group failed', error: error.message });
