@@ -31,9 +31,9 @@ exports.createPermission = async (req, res) => {
     }
 
     // Tạo permission mới
-    const newPermission = await permission.create({ name, description, action, nameGroup, pCode });
+    await permission.create({ name, description, action, nameGroup, pCode });
 
-    res.status(201).json({ message: 'Permission created successfully', permission: newPermission });
+    res.status(200).json({ message: 'Permission created successfully' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Create permission failed' });

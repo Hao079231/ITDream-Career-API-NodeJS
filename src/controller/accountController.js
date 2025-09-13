@@ -2,11 +2,15 @@ const account = require('../model/account');
 const token = require('../model/token');
 const group = require('../model/group');
 const permission = require('../model/permission');
+const { sendOtpEmail } = require('../service/emailService');
 const { ACCOUNT_STATUS, ACCOUNT_KINDS } = require('../constants/constant');
 const bcrypt = require('bcrypt');
 const { signAccessToken, signRefreshToken } = require('../middleware/jwtAuth');
 require('dotenv').config();
 
+function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 exports.login = async (req, res) => {
   try {
@@ -19,6 +23,9 @@ exports.login = async (req, res) => {
     } else if (grantType === 'student' || grantType === 'educator') {
       // Đăng nhập bằng email
       user = await account.findOne({ where: { email } });
+      if (user.kind === ACCOUNT_KINDS.EDUCATOR && user.status === ACCOUNT_STATUS.WAITING_APPROVE) {
+        return res.status(400).json({ message: 'Account is waiting for approval' });
+      }
     } else {
       return res.status(400).json({ message: 'Invalid grantType' });
     }
@@ -142,6 +149,10 @@ exports.getProfileAdmin = async (req, res) => {
       ],
     });
 
+    if (requestUser.kind !== ACCOUNT_KINDS.ADMIN) {
+      return res.status(400).json({ message: 'User is not admin' });
+    }
+
     if (!requestUser) {
       return res.status(404).json({ message: 'Account not found' });
     }
@@ -160,5 +171,127 @@ exports.getProfileAdmin = async (req, res) => {
   } catch (error) {
     console.error('Error in getProfileAdmin:', error);
     res.status(500).json({ message: 'Failed to retrieve admin profile' });
+  }
+};
+
+exports.verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const user = await account.findOne({ where: { email } });
+    if (!user) return res.status(404).json({ message: 'Account not found' });
+
+    if (user.status === ACCOUNT_STATUS.LOCKED) return res.status(400).json({ message: 'Account is locked' });
+
+    if (user.otp !== otp) {
+      user.otpAttempts += 1;
+      if (user.otpAttempts >= 5) {
+        user.status = ACCOUNT_STATUS.LOCKED;
+        await user.save();
+        return res.status(403).json({ message: 'Account locked due to too many failed attempts' });
+      }
+      await user.save();
+      return res.status(400).json({ message: 'Invalid OTP', attempts: user.otpAttempts });
+    }
+
+    // Đúng OTP
+    if (user.kind === ACCOUNT_KINDS.EDUCATOR) {
+      user.status = ACCOUNT_STATUS.WAITING_APPROVE;
+    } else {
+      user.status = ACCOUNT_STATUS.ACTIVE;
+    }
+    user.otp = null;
+    user.otpAttempts = 0;
+    await user.save();
+
+    return res.status(200).json({ message: 'Verify OTP successfully.' });
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await account.findOne({ where: { email } });
+    if (!user) return res.status(404).json({ message: 'Account not found' });
+
+    if (user.status === ACCOUNT_STATUS.LOCKED) return res.status(400).json({ message: 'Account is locked' });
+
+    // Tạo OTP mới
+    const otp = generateOtp();
+    user.otp = otp;
+    user.otpAttempts = 0;
+    await user.save();
+
+    // Gửi email OTP
+    await sendOtpEmail(email, otp);
+
+    return res.status(200).json({ message: 'OTP resent. Please check your email.' });
+  } catch (error) {
+    console.error('Error resending OTP:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await account.findOne({ where: { email } });
+    if (!user) return res.status(404).json({ message: 'Account not found' });
+
+    if (user.status === ACCOUNT_STATUS.LOCKED) {
+      return res.status(400).json({ message: 'Account is locked' });
+    }
+    const otp = generateOtp();
+    user.otp = otp;
+    user.status = ACCOUNT_STATUS.PENDING;
+    user.otpAttempts = 0;
+    await user.save();
+
+    // Gửi email OTP
+    await sendOtpEmail(email, otp);
+
+    return res.status(200).json({ message: 'OTP sent to email. Please verify to reset password.' });
+  } catch (error) {
+    console.error('Error in forgotPassword:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    const user = await account.findOne({ where: { email } });
+    if (!user) return res.status(404).json({ message: 'Account not found' });
+
+    if (user.status === ACCOUNT_STATUS.LOCKED) {
+      return res.status(400).json({ message: 'Account is locked' });
+    }
+
+    // Kiểm tra OTP
+    if (user.otp !== otp) {
+      user.otpAttempts += 1;
+      if (user.otpAttempts >= 5) {
+        user.status = ACCOUNT_STATUS.LOCKED;
+        await user.save();
+        return res.status(400).json({ message: 'Account locked due to too many failed attempts' });
+      }
+      await user.save();
+      return res.status(400).json({ message: 'Invalid OTP', attempts: user.otpAttempts });
+    }
+
+    // OTP đúng → reset password ngay
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.status = ACCOUNT_STATUS.ACTIVE;
+    user.otp = null;
+    user.otpAttempts = 0;
+    await user.save();
+
+    return res.status(200).json({ message: 'Password reset successfully.' });
+  } catch (error) {
+    console.error('Error resetting password with OTP:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
