@@ -2,16 +2,23 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const app = express();
-const studentRouter = require('./route/studentRouter');
-const accountRouter = require('./route/accountRouter');
-const permissionRouter = require('./route/permissionRouter');
-const groupRouter = require('./route/groupRouter');
 const sequelize = require('./config/dbConfig');
 const cors = require('cors');
-const educatorRouter = require('./route/educatorRouter');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./config/swaggerConfig');
+const fs = require('fs');
 
+// Tự động import tất cả file trong thư mục route
+const routePath = path.join(__dirname, 'route');
+const routers = {};
+
+fs.readdirSync(routePath).forEach(file => {
+  // Chỉ import các file .js
+  if (file.endsWith('.js')) {
+    const routerName = file.replace('.js', ''); // Lấy tên file không có .js
+    routers[routerName] = require(`./route/${routerName}`);
+  }
+});
 
 //Config use port and hostname from .env
 const PORT = process.env.PORT || 8181;
@@ -52,11 +59,12 @@ app.use(cors(corsOptions));
 
 
 // Use file api
-app.use('/v1', studentRouter);
-app.use(accountRouter);
-app.use('/v1', permissionRouter);
-app.use('/v1', groupRouter);
-app.use('/v1', educatorRouter);
+app.use('/v1', routers.studentRouter);
+app.use(routers.accountRouter);
+app.use('/v1', routers.permissionRouter);
+app.use('/v1', routers.groupRouter);
+app.use('/v1', routers.educatorRouter);
+app.use('/v1', routers.specializationRouter);
 
 // Tự động tạo bảng khi khởi động server
 sequelize.sync({ alter: true })
