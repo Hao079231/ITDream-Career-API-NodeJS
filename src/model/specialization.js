@@ -12,14 +12,16 @@ const specializationModel = sequelize.define('specializationModel', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  createdDate: {
+  createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
   },
-  updatedDate: {
+  updatedAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
   }
+}, {
+  tableName: "db_specialization"
 });
 
 module.exports = specializationModel;

@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const { sendOtpEmail } = require('../service/emailService');
 const { ACCOUNT_STATUS, ACCOUNT_KINDS } = require('../constants/constant');
 const responseCleaner = require('../utils/responseCleaner');
+const { Op } = require('sequelize');
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -166,7 +167,28 @@ exports.getListStudents = async (req, res) => {
     if (!decode.pCodes.includes('ST_L')) {
       return res.status(403).json({ message: 'Student cannot be listed' });
     }
-    const students = await account.findAll({ where: { kind: ACCOUNT_KINDS.STUDENT } });
+
+    // Lấy filter từ query
+    const { username, fullName, phone, status } = req.query;
+
+    // Tạo điều kiện where
+    const whereCondition = { kind: ACCOUNT_KINDS.STUDENT };
+
+    if (username) {
+      whereCondition.username = { [Op.like]: `%${username}%` };
+    }
+    if (fullName) {
+      whereCondition.fullName = { [Op.like]: `%${fullName}%` };
+    }
+    if (phone) {
+      whereCondition.phone = { [Op.like]: `%${phone}%` };
+    }
+    if (status) {
+      whereCondition.status = status; // status thường là số hoặc enum -> lọc chính xác
+    }
+
+    const students = await account.findAll({ where: whereCondition });
+
     const studentList = students.map(student => {
       const studentData = student.toJSON();
       delete studentData.password;
@@ -177,7 +199,13 @@ exports.getListStudents = async (req, res) => {
       delete studentData.groupId;
       return studentData;
     });
-    res.status(200).json(responseCleaner.clean({ message: 'Get list student successfully', data: studentList }));
+
+    res.status(200).json(
+      responseCleaner.clean({
+        message: 'Get list student successfully',
+        data: studentList
+      })
+    );
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to retrieve students' });
