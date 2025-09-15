@@ -49,7 +49,14 @@ exports.getListSpecializations = async (req, res) => {
     }
 
     const specializations = await specialization.findAll();
-    res.status(200).json({ message: 'Get list specialization successfully', data: specializations });
+    const specializationList = specializations.map(specialization => {
+      const specializationData = specialization.toJSON();
+      delete specializationData.createdAt;
+      delete specializationData.updatedAt;
+      return specializationData;
+    });
+
+    res.status(200).json({ message: 'Get list specialization successfully', data: specializationList });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to retrieve specializations' });

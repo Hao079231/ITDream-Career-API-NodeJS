@@ -269,7 +269,7 @@ exports.updateProfileEducator = async (req, res) => {
     if (requestUser.kind !== ACCOUNT_KINDS.EDUCATOR) {
       return res.status(400).json({ message: 'User is not an educator' });
     }
-    if (!decode.pCodes.includes('ED_EU')) {
+    if (!decode.pCodes.includes('ED_EDU')) {
       return res.status(403).json({ message: 'Update profile educator cannot allowed' });
     }
     if (requestUser.status === ACCOUNT_STATUS.LOCKED) {
