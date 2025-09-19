@@ -5,7 +5,6 @@ const bcrypt = require('bcrypt');
 const { sendOtpEmail } = require('../service/emailService');
 const { ACCOUNT_STATUS, ACCOUNT_KINDS } = require('../constants/constant');
 const ResponseCleaner = require('../utils/responseCleaner');
-const e = require('express');
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
