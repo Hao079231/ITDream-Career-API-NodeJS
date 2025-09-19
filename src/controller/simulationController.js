@@ -2,6 +2,7 @@ const simulation = require('../model/simulation');
 const educator = require('../model/educator');
 const specialization = require('../model/specialization');
 const account = require('../model/account');
+const responseCleaner = require('../utils/responseCleaner');
 const { ACCOUNT_KINDS, SIMULATION_STATUS } = require('../constants/constant');
 const { validateSimulationLevel } = require('../validation/simulationValidation');
 const { searchByTitle } = require('../service/simulationSearch');
@@ -105,7 +106,7 @@ exports.getListSimulations = async (req, res) => {
       ]
     });
 
-    return res.status(200).json({ message: 'Get simulations successfully', data: { simulations } });
+    return res.status(200).json(responseCleaner.clean({ message: 'Get simulations successfully', data: { simulations } }));
   } catch (error) {
     console.error('Error in getListSimulations:', error);
     return res.status(500).json({ message: 'Failed to retrieve simulations' });
@@ -137,7 +138,7 @@ exports.getListSimulationsForEducator = async (req, res) => {
       attributes: ['title', 'level', 'totalEstimatedTime', 'imagePath', 'avgRating', 'participantQuantity']
     });
 
-    return res.status(200).json({ message: 'Get educator simulations successfully', data: { simulations } });
+    return res.status(200).json(responseCleaner.clean({ message: 'Get educator simulations successfully', data: { simulations } }));
   } catch (error) {
     console.error('Error in getListSimulationsForEducator:', error);
     return res.status(500).json({ message: 'Failed to retrieve simulations' });
@@ -172,7 +173,7 @@ exports.getListSimulationsForStudent = async (req, res) => {
     return res.status(200).json({ message: 'Get student simulations successfully', data: { simulations } });
   } catch (error) {
     console.error('Error in getListSimulationsForStudent:', error);
-    return res.status(500).json({ message: 'Failed to retrieve simulations' });
+    return res.status(500).json(responseCleaner.clean({ message: 'Failed to retrieve simulations' }));
   }
 };
 
@@ -210,7 +211,7 @@ exports.getDetailSimulation = async (req, res) => {
     if (!sim) {
       return res.status(404).json({ message: 'Simulation not found' });
     }
-    return res.status(200).json({ message: 'Get simulation successfully', data: { simulation: sim } });
+    return res.status(200).json(responseCleaner.clean({ message: 'Get simulation successfully', data: { simulation: sim } }));
   } catch (error) {
     console.error('Error in getDetailSimulation:', error);
     return res.status(500).json({ message: 'Failed to retrieve simulation details' });
@@ -265,7 +266,7 @@ exports.getDetailSimulationForEducator = async (req, res) => {
     if (obj.educator && obj.educator.id) delete obj.educator.id;
     if (obj.specialization && obj.specialization.id) delete obj.specialization.id;
 
-    return res.status(200).json({ message: 'Get simulation successfully', data: { simulation: obj } });
+    return res.status(200).json(responseCleaner.clean({ message: 'Get simulation successfully', data: { simulation: obj } }));
   } catch (error) {
     console.error('Error in getDetailSimulationForEducator:', error);
     return res.status(500).json({ message: 'Failed to retrieve simulation details' });
@@ -316,7 +317,7 @@ exports.getDetailSimulationForStudent = async (req, res) => {
     if (obj.educator && obj.educator.id) delete obj.educator.id;
     if (obj.specialization && obj.specialization.id) delete obj.specialization.id;
 
-    return res.status(200).json({ message: 'Get simulation successfully', data: { simulation: obj } });
+    return res.status(200).json(responseCleaner.clean({ message: 'Get simulation successfully', data: { simulation: obj } }));
   } catch (error) {
     console.error('Error in getDetailSimulationForStudent:', error);
     return res.status(500).json({ message: 'Failed to retrieve simulation details' });

@@ -66,6 +66,7 @@ app.use('/v1', routers.groupRouter);
 app.use('/v1', routers.educatorRouter);
 app.use('/v1', routers.specializationRouter);
 app.use('/v1', routers.simulationRouter);
+app.use('/v1', routers.taskRouter);
 
 // Tự động tạo bảng khi khởi động server
 sequelize.sync({ alter: true })
