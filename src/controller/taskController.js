@@ -145,7 +145,7 @@ exports.getListTaskForEducator = async (req, res) => {
           include: [
             {
               model: educator,
-              attributes: ['username', 'fullName', 'phone'] // omit educator id
+              attributes: ['username', 'fullName', 'phone']
             }
           ],
           required: false
@@ -265,6 +265,10 @@ exports.deleteTask = async (req, res) => {
     if (!existingTask) return res.status(404).json({ message: 'Task not found' });
     if (existingTask.educatorId !== requestUser.id) {
       return res.status(403).json({ message: 'Educator not authorized to delete this task' });
+    }
+    // Nếu là TASK (kind = 1), xóa luôn các subtask thuộc task này
+    if (existingTask.kind === TASK_KIND.TASK) {
+      await task.destroy({ where: { parentId: existingTask.id, kind: TASK_KIND.SUBTASK } });
     }
     await existingTask.destroy();
     return res.status(200).json('Task deleted successfully');

@@ -7,7 +7,7 @@ const taskModel = sequelize.define('taskModel', {
   id: {
     type: DataTypes.BIGINT,
     primaryKey: true,
-    defaultValue: generateId,
+    defaultValue: () => generateId.generateId()
   },
   name: {
     type: DataTypes.STRING,
