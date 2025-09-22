@@ -1,7 +1,9 @@
+const { sequelize } = require('../config/dbConfig');
 const simulation = require('../model/simulation');
 const educator = require('../model/educator');
 const specialization = require('../model/specialization');
 const account = require('../model/account');
+const task = require('../model/task')
 const responseCleaner = require('../utils/responseCleaner');
 const { ACCOUNT_KINDS, SIMULATION_STATUS } = require('../constants/constant');
 const { validateSimulationLevel } = require('../validation/simulationValidation');
@@ -218,7 +220,6 @@ exports.getDetailSimulation = async (req, res) => {
   }
 };
 
-// Detail for educator: educator can view only their own simulation; hide ids (simulation id, educator id, specialization id)
 exports.getDetailSimulationForEducator = async (req, res) => {
   try {
     const decode = req.user;
@@ -273,7 +274,6 @@ exports.getDetailSimulationForEducator = async (req, res) => {
   }
 };
 
-// Detail for student: only active simulations; hide ids (simulation id, educator id, specialization id)
 exports.getDetailSimulationForStudent = async (req, res) => {
   try {
     const decode = req.user;
@@ -397,6 +397,7 @@ exports.deleteSimulation = async (req, res) => {
     if (sim.educatorId !== requestUser.id) {
       return res.status(403).json({ message: 'You are not authorized to delete this simulation' });
     }
+    await task.destroy({ where: { simulationId: sim.id } });
     await sim.destroy();
     return res.status(200).json({ message: 'Simulation deleted successfully' });
   } catch (error) {

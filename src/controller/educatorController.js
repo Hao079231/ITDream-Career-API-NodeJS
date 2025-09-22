@@ -1,7 +1,11 @@
+const bcrypt = require('bcrypt');
+const { sequelize } = require('../config/dbConfig');
 const account = require('../model/account');
 const educator = require('../model/educator');
 const group = require('../model/group');
-const bcrypt = require('bcrypt');
+const simulation = require('../model/simulation');
+const task = require('../model/task');
+
 const { sendOtpEmail } = require('../service/emailService');
 const { ACCOUNT_STATUS, ACCOUNT_KINDS } = require('../constants/constant');
 const ResponseCleaner = require('../utils/responseCleaner');
@@ -232,8 +236,11 @@ exports.updateEducator = async (req, res) => {
 };
 
 exports.deleteEducator = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const decode = req.user;
+
+    // Kiểm tra account gọi request
     const requestUser = await account.findByPk(decode.id);
     if (!requestUser) {
       return res.status(404).json({ message: 'Account not found' });
@@ -242,16 +249,47 @@ exports.deleteEducator = async (req, res) => {
       return res.status(400).json({ message: 'User is not admin' });
     }
     if (!decode.pCodes.includes('ED_D')) {
-      return res.status(403).json({ message: 'Delete educator cannot allowed' });
+      return res.status(403).json({ message: 'Delete educator not allowed' });
     }
+
+    // Lấy educator theo id
     const { educatorId } = req.params;
-    const educatorToDelete = await account.findByPk(educatorId);
-    if (!educatorToDelete || educatorToDelete.kind !== ACCOUNT_KINDS.EDUCATOR) {
+    const educatorToDelete = await educator.findByPk(educatorId);
+    if (!educatorToDelete) {
       return res.status(404).json({ message: 'Educator not found' });
     }
-    await educatorToDelete.destroy();
+
+    // Lấy tất cả simulation của educator
+    const simulations = await simulation.findAll({
+      where: { educatorId },
+      transaction: t
+    });
+
+    // Xóa tất cả task trong các simulation
+    const simIds = simulations.map(sim => sim.id);
+    if (simIds.length > 0) {
+      await task.destroy({
+        where: { simulationId: simIds },
+        transaction: t
+      });
+
+      // Xóa các simulation
+      await simulation.destroy({
+        where: { educatorId },
+        transaction: t
+      });
+    }
+
+    // Xóa educator (record trong db_educator)
+    await educatorToDelete.destroy({ transaction: t });
+
+    // Đồng thời xóa luôn account gốc (nếu muốn)
+    await account.destroy({ where: { id: educatorId }, transaction: t });
+
+    await t.commit();
     return res.status(200).json({ message: 'Educator deleted successfully' });
   } catch (error) {
+    await t.rollback();
     console.error('Error deleting educator:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const taskController = require('../controller/taskController');
-const authenticate = require('../middleware/jwtMiddleware');
+const { authenticate } = require('../middleware/jwtMiddleware');
 
 /**
  * @swagger
@@ -15,8 +15,7 @@ const authenticate = require('../middleware/jwtMiddleware');
  * /v1/task/create:
  *   post:
  *     summary: Tạo mới Task/Subtask
- *     description: Chỉ Educator có quyền tạo task. Nếu tạo subtask (kind = 2) phải 
- *     truyền parentId (parent phải có kind = 1)
+ *     description: Chỉ Educator có quyền tạo task. Nếu tạo subtask (kind = 2) phải truyền parentId (parent phải có kind = 1)
  *     tags:
  *       - Task
  *     security:
@@ -72,8 +71,7 @@ router.post('/task/create', authenticate, taskController.createTask);
  * /v1/task/list:
  *   get:
  *     summary: Lấy danh sách Task và Subtask theo simulation (Admin)
- *     description: Chỉ Admin có quyền xem. Trả về các Task (kind = 1) cùng các 
- *     Subtask (kind = 2) thuộc từng Task. Kèm thông tin simulation và educator
+ *     description: Chỉ Admin có quyền xem. Trả về các Task (kind = 1) cùng các Subtask (kind = 2) thuộc từng Task, kèm thông tin simulation và educator
  *     tags:
  *       - Task
  *     security:
@@ -102,7 +100,7 @@ router.get('/task/list', authenticate, taskController.getListTask);
  * /v1/task/educator-list:
  *   get:
  *     summary: Lấy danh sách Task và Subtask cho Educator (chỉ simulation của họ)
- *     description: Educator chỉ xem được task của các simulation do họ tạo. Trả về   *     Task (kind = 1) và Subtask (kind = 2) kèm thông tin simulation và educator
+ *     description: Educator chỉ xem được task của các simulation do họ tạo. Trả về Task (kind = 1) và Subtask (kind = 2) kèm thông tin simulation và educator
  *     tags:
  *       - Task
  *     security:
@@ -120,7 +118,7 @@ router.get('/task/list', authenticate, taskController.getListTask);
  *       400:
  *         description: Thiếu simulationId hoặc không có quyền
  *       403:
- *         description: Người dùng không phải educator hoặc không được phép truy cập *         simulation này
+ *         description: Người dùng không phải educator hoặc không được phép truy cập simulation này
  *       404:
  *         description: Simulation không tồn tại
  */
@@ -131,7 +129,7 @@ router.get('/task/educator-list', authenticate, taskController.getListTaskForEdu
  * /v1/task/student-list:
  *   get:
  *     summary: Lấy danh sách Task và Subtask cho Student (chỉ simulation active)
- *     description: Student chỉ xem được task của simulation có status = ACTIVE. Trả *     về Task (kind = 1) và Subtask (kind = 2) kèm thông tin simulation và educator
+ *     description: Student chỉ xem được task của simulation có status = ACTIVE. Trả về Task (kind = 1) và Subtask (kind = 2) kèm thông tin simulation và educator
  *     tags:
  *       - Task
  *     security:
@@ -160,7 +158,7 @@ router.get('/task/student-list', authenticate, taskController.getListTaskForStud
  * /v1/task/update:
  *   put:
  *     summary: Cập nhật Task
- *     description: Educator có thể cập nhật task của chính họ (nếu áp dụng). Sau khi *     cập nhật có thể chuyển trạng thái simulation về WAITING_APPROVE.
+ *     description: Educator có thể cập nhật task của chính họ (nếu áp dụng). Sau khi cập nhật có thể chuyển trạng thái simulation về WAITING_APPROVE
  *     tags:
  *       - Task
  *     security:
@@ -211,7 +209,7 @@ router.put('/task/update', authenticate, taskController.updateTask);
  * /v1/task/delete:
  *   delete:
  *     summary: Xóa Task
- *     description: Educator có thể xóa task của chính họ. Yêu cầu truyền id của task *     cần xóa
+ *     description: Educator có thể xóa task của chính họ. Yêu cầu truyền id của task cần xóa
  *     tags:
  *       - Task
  *     security:
@@ -241,6 +239,6 @@ router.put('/task/update', authenticate, taskController.updateTask);
  *       404:
  *         description: Task không tồn tại
  */
-router.delete('/task/delete', authenticate, taskController.deleteTask);
+router.delete('/task/delete/:id', authenticate, taskController.deleteTask);
 
 module.exports = router;
