@@ -70,17 +70,36 @@ const simulationModel = sequelize.define('simulationModel', {
 });
 
 // Thiết lập quan hệ N - 1 giữa simulationModel và educatorModel
-educatorModel.hasMany(simulationModel, { foreignKey: 'educatorId' });
-simulationModel.belongsTo(educatorModel, { foreignKey: 'educatorId' });
+educatorModel.hasMany(simulationModel, { foreignKey: 'educatorId', as: 'simulation' });
+simulationModel.belongsTo(educatorModel, { foreignKey: 'educatorId', as: 'educator' });
 
 // Thiết lập quan hệ N - 1 giữa simulationModel và specializationModel
-specializationModel.hasMany(simulationModel, { foreignKey: 'specializationId' });
-simulationModel.belongsTo(specializationModel, { foreignKey: 'specializationId' });
+specializationModel.hasMany(simulationModel, { foreignKey: 'specializationId', as: 'simulaiton' });
+simulationModel.belongsTo(specializationModel, { foreignKey: 'specializationId', as: 'specialization' });
 
 // Hooks: index khi create/update, xóa khi destroy
-simulationModel.addHook('afterCreate', async (sim) => { try { await indexSimulation(sim); } catch (e) { console.error('ES index create error', e); } });
-simulationModel.addHook('afterUpdate', async (sim) => { try { await indexSimulation(sim); } catch (e) { console.error('ES index update error', e); } });
-simulationModel.addHook('afterDestroy', async (sim) => { try { await deleteSimulation(sim.id); } catch (e) { console.error('ES delete error', e); } });
+simulationModel.addHook('afterCreate', async (sim) => {
+  try {
+    // chỉ index document, không tạo lại index
+    await indexSimulation(sim, { createIndexIfMissing: true });
+  } catch (e) {
+    console.error('ES index create error', e);
+  }
+});
+simulationModel.addHook('afterUpdate', async (sim) => {
+  try {
+    await indexSimulation(sim); // chỉ update doc
+  } catch (e) {
+    console.error('ES index update error', e);
+  }
+});
+simulationModel.addHook('afterDestroy', async (sim) => {
+  try {
+    await deleteSimulation(sim.id);
+  } catch (e) {
+    console.error('ES delete error', e);
+  }
+});
 
 
 module.exports = simulationModel;

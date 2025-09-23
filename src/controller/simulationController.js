@@ -1,6 +1,7 @@
 const { sequelize } = require('../config/dbConfig');
 const simulation = require('../model/simulation');
 const educator = require('../model/educator');
+const student = require('../model/student');
 const specialization = require('../model/specialization');
 const account = require('../model/account');
 const task = require('../model/task')
@@ -8,6 +9,7 @@ const responseCleaner = require('../utils/responseCleaner');
 const { ACCOUNT_KINDS, SIMULATION_STATUS } = require('../constants/constant');
 const { validateSimulationLevel } = require('../validation/simulationValidation');
 const { searchByTitle } = require('../service/simulationSearch');
+const SequelizeToJson = require('../utils/sequelizeToJson');
 require('dotenv').config();
 
 function buildFiltersFromQuery(query) {
@@ -27,12 +29,19 @@ exports.createSimulation = async (req, res) => {
   try {
     const decode = req.user;
 
-    const requestUser = await educator.findOne({ where: { accountId: decode.id } });
+    const requestUser = await educator.findOne({
+      where: { id: decode.id },
+      include: [{
+        association: 'account',
+        attributes: ['kind', 'email', 'username']
+      }]
+    });
+
     if (!requestUser) {
       return res.status(404).json({ message: 'Educator not found' });
     }
 
-    if (requestUser.kind !== ACCOUNT_KINDS.EDUCATOR) {
+    if (requestUser.account.kind !== ACCOUNT_KINDS.EDUCATOR) {
       return res.status(400).json({ message: 'User is not an educator' });
     }
 
@@ -40,7 +49,7 @@ exports.createSimulation = async (req, res) => {
       return res.status(403).json({ message: 'Simulation cannot be created' });
     }
 
-    const { title, description, overview, level, totalEstimatedTime, imagePath, educatorId, specializationId } = req.body;
+    const { title, description, overview, level, totalEstimatedTime, imagePath, specializationId } = req.body;
 
     // Kiểm tra level có hợp lệ không
     const levelValidation = validateSimulationLevel(level);
@@ -60,7 +69,7 @@ exports.createSimulation = async (req, res) => {
       level,
       totalEstimatedTime,
       imagePath,
-      educatorId,
+      educatorId: requestUser.id,
       specializationId,
       status: simulationStatus
     });
@@ -96,19 +105,29 @@ exports.getListSimulations = async (req, res) => {
       include: [
         {
           model: educator,
-          include: [{
-            model: account,
-            attributes: ['username', 'fullName']
-          }]
+          as: 'educator',
+          include: [
+            {
+              model: account,
+              as: 'account',
+              attributes: ['id', 'username', 'fullName']
+            }
+          ]
         },
         {
           model: specialization,
+          as: 'specialization',
           attributes: ['id', 'name']
         }
       ]
     });
 
-    return res.status(200).json(responseCleaner.clean({ message: 'Get simulations successfully', data: { simulations } }));
+    const plainData = SequelizeToJson.convert(simulations);
+
+    return res.status(200).json({
+      message: 'Get simulations successfully',
+      data: { simulations: plainData }
+    });
   } catch (error) {
     console.error('Error in getListSimulations:', error);
     return res.status(500).json({ message: 'Failed to retrieve simulations' });
@@ -121,11 +140,17 @@ exports.getListSimulations = async (req, res) => {
 exports.getListSimulationsForEducator = async (req, res) => {
   try {
     const decode = req.user;
-    const requestEducator = await educator.findOne({ where: { accountId: decode.id } });
+    const requestEducator = await educator.findOne({
+      where: { id: decode.id },
+      include: [{
+        association: 'account',
+        attributes: ['kind', 'email', 'username']
+      }]
+    });
     if (!requestEducator) {
       return res.status(404).json({ message: 'Educator not found' });
     }
-    if (requestEducator.kind !== ACCOUNT_KINDS.EDUCATOR) {
+    if (requestEducator.account.kind !== ACCOUNT_KINDS.EDUCATOR) {
       return res.status(403).json({ message: 'User is not an educator' });
     }
     if (!decode.pCodes.includes('SI_EDL')) {
@@ -137,10 +162,19 @@ exports.getListSimulationsForEducator = async (req, res) => {
 
     const simulations = await simulation.findAll({
       where: filters,
-      attributes: ['title', 'level', 'totalEstimatedTime', 'imagePath', 'avgRating', 'participantQuantity']
+      attributes: ['id', 'title', 'level', 'totalEstimatedTime', 'imagePath', 'avgRating', 'participantQuantity'],
+      include: [{
+        model: specialization,
+        as: 'specialization',
+        attributes: ['id', 'name']
+      }]
     });
 
-    return res.status(200).json(responseCleaner.clean({ message: 'Get educator simulations successfully', data: { simulations } }));
+    const plainData = SequelizeToJson.convert(simulations);
+    return res.status(200).json({
+      message: 'Get simulations successfully',
+      data: { simulations: plainData }
+    });
   } catch (error) {
     console.error('Error in getListSimulationsForEducator:', error);
     return res.status(500).json({ message: 'Failed to retrieve simulations' });
@@ -153,11 +187,17 @@ exports.getListSimulationsForEducator = async (req, res) => {
 exports.getListSimulationsForStudent = async (req, res) => {
   try {
     const decode = req.user;
-    const requestUser = await account.findOne({ where: { id: decode.id } });
+    const requestUser = await student.findOne({
+      where: { id: decode.id },
+      include: [{
+        association: 'account',
+        attributes: ['kind', 'email', 'username']
+      }]
+    });
     if (!requestUser) {
       return res.status(404).json({ message: 'Account not found' });
     }
-    if (requestUser.kind !== ACCOUNT_KINDS.STUDENT) {
+    if (requestUser.account.kind !== ACCOUNT_KINDS.STUDENT) {
       return res.status(403).json({ message: 'User is not a student' });
     }
     if (!decode.pCodes.includes('SI_STL')) {
@@ -169,10 +209,16 @@ exports.getListSimulationsForStudent = async (req, res) => {
 
     const simulations = await simulation.findAll({
       where: filters,
-      attributes: ['title', 'level', 'totalEstimatedTime', 'imagePath', 'avgRating', 'participantQuantity']
+      attributes: ['id', 'title', 'level', 'totalEstimatedTime', 'imagePath', 'avgRating', 'participantQuantity'],
+      include: [{
+        model: specialization,
+        as: 'specialization',
+        attributes: ['id', 'name']
+      }]
     });
 
-    return res.status(200).json({ message: 'Get student simulations successfully', data: { simulations } });
+    const plainData = SequelizeToJson.convert(simulations);
+    return res.status(200).json({ message: 'Get student simulations successfully', data: { simulations: plainData } });
   } catch (error) {
     console.error('Error in getListSimulationsForStudent:', error);
     return res.status(500).json(responseCleaner.clean({ message: 'Failed to retrieve simulations' }));
@@ -199,13 +245,18 @@ exports.getDetailSimulation = async (req, res) => {
       include: [
         {
           model: educator,
-          include: [{
-            model: account,
-            attributes: ['username', 'fullName']
-          }]
+          as: 'educator',
+          include: [
+            {
+              model: account,
+              as: 'account',
+              attributes: ['id', 'username', 'fullName']
+            }
+          ]
         },
         {
           model: specialization,
+          as: 'specialization',
           attributes: ['id', 'name']
         }
       ]
@@ -213,7 +264,8 @@ exports.getDetailSimulation = async (req, res) => {
     if (!sim) {
       return res.status(404).json({ message: 'Simulation not found' });
     }
-    return res.status(200).json(responseCleaner.clean({ message: 'Get simulation successfully', data: { simulation: sim } }));
+    const plainData = SequelizeToJson.convert(sim);
+    return res.status(200).json(responseCleaner.clean({ message: 'Get simulation successfully', data: { simulation: plainData } }));
   } catch (error) {
     console.error('Error in getDetailSimulation:', error);
     return res.status(500).json({ message: 'Failed to retrieve simulation details' });
@@ -223,11 +275,17 @@ exports.getDetailSimulation = async (req, res) => {
 exports.getDetailSimulationForEducator = async (req, res) => {
   try {
     const decode = req.user;
-    const requestEducator = await educator.findOne({ where: { accountId: decode.id } });
+    const requestEducator = await educator.findOne({
+      where: { id: decode.id },
+      include: [{
+        association: 'account',
+        attributes: ['kind', 'email', 'username']
+      }]
+    });
     if (!requestEducator) {
       return res.status(404).json({ message: 'Educator not found' });
     }
-    if (requestEducator.kind !== ACCOUNT_KINDS.EDUCATOR) {
+    if (requestEducator.account.kind !== ACCOUNT_KINDS.EDUCATOR) {
       return res.status(403).json({ message: 'User is not an educator' });
     }
     if (!decode.pCodes.includes('SI_EDV')) {
@@ -240,13 +298,16 @@ exports.getDetailSimulationForEducator = async (req, res) => {
       include: [
         {
           model: educator,
+          as: 'educator',
           include: [{
             model: account,
+            as: 'account',
             attributes: ['username', 'fullName']
           }]
         },
         {
           model: specialization,
+          as: 'specialization',
           attributes: ['id', 'name']
         }
       ]
@@ -260,14 +321,17 @@ exports.getDetailSimulationForEducator = async (req, res) => {
       return res.status(403).json({ message: 'You are not authorized to view this simulation' });
     }
 
-    const obj = sim.toJSON();
-    delete obj.id;
-    delete obj.educatorId;
-    delete obj.specializationId;
-    if (obj.educator && obj.educator.id) delete obj.educator.id;
-    if (obj.specialization && obj.specialization.id) delete obj.specialization.id;
+    const plainData = SequelizeToJson.convert(sim);
+    delete plainData.educatorId;
+    delete plainData.specializationId;
+    delete plainData.status;
+    delete plainData.createdAt;
+    delete plainData.updatedAt;
+    delete plainData.educator.id;
+    delete plainData.educator.createdAt;
+    delete plainData.educator.updatedAt;
 
-    return res.status(200).json(responseCleaner.clean({ message: 'Get simulation successfully', data: { simulation: obj } }));
+    return res.status(200).json({ message: 'Get simulation successfully', data: { simulation: plainData } });
   } catch (error) {
     console.error('Error in getDetailSimulationForEducator:', error);
     return res.status(500).json({ message: 'Failed to retrieve simulation details' });
@@ -277,11 +341,17 @@ exports.getDetailSimulationForEducator = async (req, res) => {
 exports.getDetailSimulationForStudent = async (req, res) => {
   try {
     const decode = req.user;
-    const requestUser = await account.findOne({ where: { id: decode.id } });
+    const requestUser = await student.findOne({
+      where: { id: decode.id },
+      include: [{
+        association: 'account',
+        attributes: ['kind', 'email', 'username']
+      }]
+    });
     if (!requestUser) {
       return res.status(404).json({ message: 'Account not found' });
     }
-    if (requestUser.kind !== ACCOUNT_KINDS.STUDENT) {
+    if (requestUser.account.kind !== ACCOUNT_KINDS.STUDENT) {
       return res.status(403).json({ message: 'User is not a student' });
     }
     if (!decode.pCodes.includes('SI_STV')) {
@@ -294,13 +364,16 @@ exports.getDetailSimulationForStudent = async (req, res) => {
       include: [
         {
           model: educator,
+          as: 'educator',
           include: [{
             model: account,
+            as: 'account',
             attributes: ['username', 'fullName']
           }]
         },
         {
           model: specialization,
+          as: 'specialization',
           attributes: ['id', 'name']
         }
       ]
@@ -310,14 +383,9 @@ exports.getDetailSimulationForStudent = async (req, res) => {
       return res.status(404).json({ message: 'Simulation not found or not active' });
     }
 
-    const obj = sim.toJSON();
-    delete obj.id;
-    delete obj.educatorId;
-    delete obj.specializationId;
-    if (obj.educator && obj.educator.id) delete obj.educator.id;
-    if (obj.specialization && obj.specialization.id) delete obj.specialization.id;
+    const plainData = SequelizeToJson.convert(sim);
 
-    return res.status(200).json(responseCleaner.clean({ message: 'Get simulation successfully', data: { simulation: obj } }));
+    return res.status(200).json({ message: 'Get simulation successfully', data: { simulation: plainData } });
   } catch (error) {
     console.error('Error in getDetailSimulationForStudent:', error);
     return res.status(500).json({ message: 'Failed to retrieve simulation details' });
@@ -327,11 +395,17 @@ exports.getDetailSimulationForStudent = async (req, res) => {
 exports.updateSimulation = async (req, res) => {
   try {
     const decode = req.user;
-    const requestUser = await educator.findOne({ where: { accountId: decode.id } });
+    const requestUser = await educator.findOne({
+      where: { id: decode.id },
+      include: [{
+        association: 'account',
+        attributes: ['kind', 'email', 'username']
+      }]
+    });
     if (!requestUser) {
       return res.status(404).json({ message: 'Educator not found' });
     }
-    if (requestUser.kind !== ACCOUNT_KINDS.EDUCATOR) {
+    if (requestUser.account.kind !== ACCOUNT_KINDS.EDUCATOR) {
       return res.status(403).json({ message: 'User is not an educator' });
     }
     if (!decode.pCodes.includes('SI_U')) {
@@ -379,11 +453,17 @@ exports.updateSimulation = async (req, res) => {
 exports.deleteSimulation = async (req, res) => {
   try {
     const decode = req.user;
-    const requestUser = await educator.findOne({ where: { accountId: decode.id } });
+    const requestUser = await educator.findOne({
+      where: { id: decode.id },
+      include: [{
+        association: 'account',
+        attributes: ['kind', 'email', 'username']
+      }]
+    });
     if (!requestUser) {
       return res.status(404).json({ message: 'Educator not found' });
     }
-    if (requestUser.kind !== ACCOUNT_KINDS.EDUCATOR) {
+    if (requestUser.account.kind !== ACCOUNT_KINDS.EDUCATOR) {
       return res.status(403).json({ message: 'User is not an educator' });
     }
     if (!decode.pCodes.includes('SI_D')) {
@@ -462,11 +542,11 @@ exports.approveSimulation = async (req, res) => {
       return res.status(403).json({ message: 'User is not an admin' });
     }
 
-    if (!decode.pCodes || !decode.pCodes.includes('SI_AP')) {
+    if (!decode.pCodes.includes('SI_AP')) {
       return res.status(403).json({ message: 'Simulation cannot be approved' });
     }
 
-    const { id } = req.params;
+    const { id } = req.body;
     const sim = await simulation.findOne({ where: { id } });
     if (!sim) {
       return res.status(404).json({ message: 'Simulation not found' });

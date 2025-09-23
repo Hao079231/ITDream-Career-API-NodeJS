@@ -41,9 +41,6 @@ exports.getListSpecializations = async (req, res) => {
     if (!requestUser) {
       return res.status(404).json({ message: 'Account not found' });
     }
-    if (requestUser.kind !== ACCOUNT_KINDS.ADMIN) {
-      return res.status(403).json({ message: 'User is not an admin' });
-    }
     if (!decode.pCodes.includes('SP_L')) {
       return res.status(403).json({ message: 'Specialization cannot be listed' });
     }
