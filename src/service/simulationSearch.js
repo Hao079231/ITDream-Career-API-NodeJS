@@ -1,9 +1,11 @@
 const client = require('../config/elasticSeachConfig');
 const INDEX = 'simulations';
 
+// Tạo index một lần khi khởi động server
 async function ensureIndex() {
   const exists = await client.indices.exists({ index: INDEX });
-  if (!exists.body) {
+  const isExists = exists.body !== undefined ? exists.body : exists;
+  if (!isExists) {
     await client.indices.create({
       index: INDEX,
       body: {
@@ -19,14 +21,17 @@ async function ensureIndex() {
         }
       }
     });
+    console.log(`Index ${INDEX} created`);
+  } else {
+    console.log(`Index ${INDEX} already exists`);
   }
 }
 
+// 👉 KHÔNG gọi ensureIndex ở đây nữa
 async function indexSimulation(simulation) {
-  await ensureIndex();
   return client.index({
     index: INDEX,
-    id: simulation.id,
+    id: String(simulation.id),
     body: {
       id: simulation.id,
       title: simulation.title,
@@ -47,29 +52,41 @@ async function deleteSimulation(id) {
       refresh: true
     });
   } catch (error) {
-    if (error.meta.statusCode === 404) {
+    if (error.meta?.statusCode === 404) {
       return { result: 'not_found' };
-    };
+    }
+    throw error;
   }
 }
 
-async function searchSimulations(query, size = 20, from = 0) {
-  await ensureIndex();
-  const { body } = await client.search({
+async function searchByTitle(query, size = 20, from = 0) {
+  const result = await client.search({
     index: INDEX,
     body: {
-      query: {
-        match: { title: { query: query, fuzziness: "AUTO" } }
-      },
+      query: { match: { title: { query, fuzziness: 'AUTO' } } },
       from,
       size
     }
   });
-  return body.hits.hits.map(hit => hit._source);
+
+  // Luôn fallback để không bị undefined
+  const esHits = result.body?.hits?.hits || result.hits?.hits || [];
+  const total = result.body?.hits?.total?.value
+    ?? result.body?.hits?.total
+    ?? result.hits?.total?.value
+    ?? result.hits?.total
+    ?? 0;
+
+  // ✅ Trả về object chuẩn
+  return { hits: esHits, total };
 }
 
+module.exports = { searchByTitle };
+
+
 module.exports = {
+  ensureIndex,
   indexSimulation,
   deleteSimulation,
-  searchSimulations
+  searchByTitle
 };

@@ -384,6 +384,15 @@ exports.getDetailSimulationForStudent = async (req, res) => {
     }
 
     const plainData = SequelizeToJson.convert(sim);
+    delete plainData.educatorId;
+    delete plainData.specializationId;
+    delete plainData.status;
+    delete plainData.createdAt;
+    delete plainData.updatedAt;
+    delete plainData.educator.id;
+    delete plainData.educator.createdAt;
+    delete plainData.educator.updatedAt;
+
 
     return res.status(200).json({ message: 'Get simulation successfully', data: { simulation: plainData } });
   } catch (error) {
@@ -488,47 +497,68 @@ exports.deleteSimulation = async (req, res) => {
 
 exports.searchSimulations = async (req, res) => {
   try {
-    const { query, size = 20, page = 1, specializationId, level } = req.query;
-    if (!query || query.trim() === '') {
-      return res.status(400).json({ message: 'Query parameter is required' });
+    const { title, size = 20, page = 1, specializationId, level } = req.query;
+    if (!title || title.trim() === '') {
+      return res.status(400).json({ message: 'Title parameter is required' });
     }
+
     const from = (Number(page) - 1) * Number(size);
-    const hits = await searchByTitle(query, Number(size), from);
 
-    const ids = hits.hits.map(hit => hit._source.id);
+    // ✅ Lấy hits và total từ object trả về
+    const { hits, total } = await searchByTitle(title, Number(size), from);
+
+    if (!Array.isArray(hits)) {
+      console.error('Elasticsearch hits is not an array:', hits);
+      return res.status(500).json({ message: 'Invalid Elasticsearch response' });
+    }
+
+    const ids = hits.map(hit => hit._source.id);
     if (ids.length === 0) {
-      return res.status(200).json({ message: 'Search simulations successfully', data: { simulations: [], total: 0 } });
+      return res.status(200).json({
+        message: 'Search simulations successfully',
+        data: { simulations: [], total: 0 }
+      });
     }
 
+    // Xây dựng where condition
     const where = { id: ids };
-    // apply optional filters (specializationId, level)
-    if (specializationId) {
-      const sid = Number(specializationId);
-      if (!Number.isNaN(sid)) where.specializationId = sid;
+    if (specializationId && !Number.isNaN(Number(specializationId))) {
+      where.specializationId = Number(specializationId);
     }
-    if (level) {
-      const lvl = Number(level);
-      if (!Number.isNaN(lvl)) where.level = lvl;
+    if (level && !Number.isNaN(Number(level))) {
+      where.level = Number(level);
     }
 
+    // Lấy danh sách simulation từ DB
     const simulations = await simulation.findAll({
       where,
       include: [
-        { model: educator, include: [{ model: account, attributes: ['username', 'fullName'] }] },
-        { model: specialization, attributes: ['id', 'name'] }
+        {
+          model: educator,
+          as: 'educator',
+          include: [
+            { model: account, as: 'account', attributes: ['username', 'fullName'] }
+          ]
+        },
+        { model: specialization, as: 'specialization', attributes: ['id', 'name'] }
       ]
     });
 
-    // preserve order from ES results
+    // Giữ nguyên thứ tự như ES
     const map = new Map(simulations.map(sim => [sim.id, sim]));
     const ordered = ids.map(id => map.get(id)).filter(Boolean);
 
-    return res.status(200).json({ message: 'Search simulations successfully', data: { simulations: ordered, total: hits.total?.value || hits.total } });
+
+    return res.status(200).json({
+      message: 'Search simulations successfully',
+      data: { simulations: ordered, total }
+    });
   } catch (error) {
     console.error('Error in searchSimulations:', error);
     return res.status(500).json({ message: 'Failed to search simulations' });
   }
 };
+
 
 // Approve simulation (admin only). Changes status from WAITING_APPROVE => ACTIVE
 exports.approveSimulation = async (req, res) => {
