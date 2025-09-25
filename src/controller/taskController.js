@@ -61,7 +61,6 @@ exports.createTask = async (req, res) => {
       }
     }
 
-
     // ✅ Kiểm tra title không trùng trong cùng simulation
     const existSubtask = await task.findOne({
       where: {

@@ -164,10 +164,7 @@ exports.getProfileAdmin = async (req, res) => {
     const adminData = requestUser.toJSON();
     delete adminData.password;
 
-    res.status(200).json({
-      message: 'Get profile success',
-      admin: adminData
-    });
+    res.status(200).json({ message: 'Get profile success', admin: adminData });
   } catch (error) {
     console.error('Error in getProfileAdmin:', error);
     res.status(500).json({ message: 'Failed to retrieve admin profile' });
@@ -190,7 +187,7 @@ exports.verifyOtp = async (req, res) => {
         return res.status(403).json({ message: 'Account locked due to too many failed attempts' });
       }
       await user.save();
-      return res.status(400).json({ message: 'Invalid OTP', attempts: user.otpAttempts });
+      return res.status(400).json({ message: 'Invalid OTP' });
     }
 
     // Đúng OTP
@@ -278,7 +275,7 @@ exports.resetPassword = async (req, res) => {
         return res.status(400).json({ message: 'Account locked due to too many failed attempts' });
       }
       await user.save();
-      return res.status(400).json({ message: 'Invalid OTP', attempts: user.otpAttempts });
+      return res.status(400).json({ message: 'Invalid OTP' });
     }
 
     // OTP đúng → reset password ngay
