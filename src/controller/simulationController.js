@@ -392,8 +392,6 @@ exports.getDetailSimulationForStudent = async (req, res) => {
     delete plainData.educator.id;
     delete plainData.educator.createdAt;
     delete plainData.educator.updatedAt;
-
-
     return res.status(200).json({ message: 'Get simulation successfully', data: { simulation: plainData } });
   } catch (error) {
     console.error('Error in getDetailSimulationForStudent:', error);

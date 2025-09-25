@@ -107,7 +107,7 @@ exports.getProfileEducator = async (req, res) => {
     delete educatorData.updatedAt;
     delete educatorData.groupId;
 
-    return res.status(200).json(ResponseCleaner.clean({ message: 'Get educator profile successfully', profile: educatorData }));
+    return res.status(200).json({ message: 'Get educator profile successfully', profile: educatorData });
   } catch (error) {
     console.error('Error getting educator profile:', error);
     return res.status(500).json({ message: 'Internal server error' });
