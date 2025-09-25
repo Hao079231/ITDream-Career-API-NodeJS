@@ -376,11 +376,11 @@ router.delete('/simulation/delete/:id', authenticate, simulationController.delet
  *       500:
  *         description: Lỗi server
  */
-router.get('/simulation/search', authenticate, simulationController.searchSimulations);
+router.get('/simulation/search', simulationController.searchSimulations);
 
 /**
  * @swagger
- * /v1/simulation/approve/{id}:
+ * /v1/simulation/approve:
  *   put:
  *     summary: Phê duyệt Simulation (Admin)
  *     description: Chỉ Admin có quyền phê duyệt. Chuyển trạng thái từ WAITING_APPROVE => ACTIVE.
@@ -388,13 +388,20 @@ router.get('/simulation/search', authenticate, simulationController.searchSimula
  *       - Simulation
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của simulation cần phê duyệt
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: BIGINT
+ *                 example: "763236676154859520"
+ *             required:
+ *               - id
+ *           example:
+ *             id: "763236676154859520"   # ví dụ id simulation cần phê duyệt
  *     responses:
  *       200:
  *         description: Phê duyệt simulation thành công
@@ -405,6 +412,7 @@ router.get('/simulation/search', authenticate, simulationController.searchSimula
  *       404:
  *         description: Simulation không tồn tại
  */
-router.put('/simulation/approve/:id', authenticate, simulationController.approveSimulation);
+router.put('/simulation/approve', authenticate, simulationController.approveSimulation);
+
 
 module.exports = router;

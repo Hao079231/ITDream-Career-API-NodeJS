@@ -188,10 +188,6 @@ router.get('/task/student-list', authenticate, taskController.getListTaskForStud
  *                 type: string
  *               filePath:
  *                 type: string
- *               parentId:
- *                 type: integer
- *               kind:
- *                 type: integer
  *     responses:
  *       200:
  *         description: Cập nhật task thành công
@@ -206,7 +202,7 @@ router.put('/task/update', authenticate, taskController.updateTask);
 
 /**
  * @swagger
- * /v1/task/delete:
+ * /v1/task/delete/{id}:
  *   delete:
  *     summary: Xóa Task
  *     description: Educator có thể xóa task của chính họ. Yêu cầu truyền id của task cần xóa

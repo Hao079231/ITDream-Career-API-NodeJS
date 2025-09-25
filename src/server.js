@@ -6,6 +6,7 @@ const sequelize = require('./config/dbConfig');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./config/swaggerConfig');
+const { ensureIndex } = require('./service/simulationSearch');
 const fs = require('fs');
 
 // Tự động import tất cả file trong thư mục route
@@ -67,6 +68,10 @@ app.use('/v1', routers.educatorRouter);
 app.use('/v1', routers.specializationRouter);
 app.use('/v1', routers.simulationRouter);
 app.use('/v1', routers.taskRouter);
+
+(async () => {
+  await ensureIndex(); // chỉ chạy 1 lần khi app start
+})();
 
 // Tự động tạo bảng khi khởi động server
 sequelize.sync({ alter: true })

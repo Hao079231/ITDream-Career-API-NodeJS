@@ -13,7 +13,7 @@ const studentModel = sequelize.define('studentModel', {
 });
 
 // Thiết lập quan hệ 1-1
-accountModel.hasOne(studentModel, { foreignKey: 'id' });
-studentModel.belongsTo(accountModel, { foreignKey: 'id' });
+accountModel.hasOne(studentModel, { foreignKey: 'id', as: 'student' });
+studentModel.belongsTo(accountModel, { foreignKey: 'id', as: 'account' });
 
 module.exports = studentModel;
