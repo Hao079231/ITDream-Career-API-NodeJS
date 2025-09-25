@@ -47,18 +47,19 @@ const taskModel = sequelize.define('taskModel', {
   },
   simulationId: {
     type: DataTypes.BIGINT,
-    allowNull: false
+    allowNull: false,
+    references: { model: simulationModel, key: 'id' }
   }
 }, {
   tableName: 'db_task'
 });
 
 // Thiết lập quan hệ N - 1 giữa taskModel và simulationModel
-taskModel.hasMany(taskModel, { foreignKey: 'simulationId' });
-simulationModel.belongsTo(taskModel, { foreignKey: 'simulationId' });
+simulationModel.hasMany(taskModel, { foreignKey: 'simulationId', as: 'task' });
+taskModel.belongsTo(simulationModel, { foreignKey: 'simulationId', as: 'simulation' });
 
 // Thiết lập quan hệ N - 1 giữa taskModel và chính nó để biểu diễn quan hệ cha-con
-taskModel.hasMany(taskModel, { foreignKey: 'parentId' });
-taskModel.belongsTo(taskModel, { foreignKey: 'parentId' });
+taskModel.hasMany(taskModel, { foreignKey: 'parentId', as: 'subtask' });
+taskModel.belongsTo(taskModel, { foreignKey: 'parentId', as: 'task' });
 
 module.exports = taskModel;

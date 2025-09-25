@@ -388,13 +388,20 @@ router.get('/simulation/search', simulationController.searchSimulations);
  *       - Simulation
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của simulation cần phê duyệt
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: BIGINT
+ *                 example: "763236676154859520"
+ *             required:
+ *               - id
+ *           example:
+ *             id: "763236676154859520"   # ví dụ id simulation cần phê duyệt
  *     responses:
  *       200:
  *         description: Phê duyệt simulation thành công
@@ -406,5 +413,6 @@ router.get('/simulation/search', simulationController.searchSimulations);
  *         description: Simulation không tồn tại
  */
 router.put('/simulation/approve', authenticate, simulationController.approveSimulation);
+
 
 module.exports = router;
